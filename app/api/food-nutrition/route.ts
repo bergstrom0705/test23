@@ -50,6 +50,20 @@ const foodNameMap: Record<string, string> = {
   '苹果': 'apple',
 };
 
+// 添加食物数据的接口定义
+interface FoodItem {
+  description: string;
+  fdcId: number;
+  // 可以根据实际API返回的数据添加其他必要的字段
+}
+
+// 添加营养成分接口定义
+interface Nutrient {
+  name: string;
+  amount: number;
+  unit: string;
+}
+
 export async function POST(request: Request) {
   try {
     const { foodName } = await request.json();
@@ -79,7 +93,7 @@ export async function POST(request: Request) {
       // 2. 使用 LLM 选择最合适的食物
       const foodChoicePrompt = `
         以下是搜索"${foodName}"返回的食物列表:
-        ${searchData.foods.slice(0, 5).map((f, i) => `${i}. ${f.description}`).join('\n')}
+        ${searchData.foods.slice(0, 5).map((f: FoodItem, i: number) => `${i}. ${f.description}`).join('\n')}
         
         请选择最普遍、最大众化的一种食物，只返回对应的索引数字(0-4)。
       `;
@@ -111,7 +125,7 @@ export async function POST(request: Request) {
         同时，请按照以下顺序排列（如果存在的话）：热量、蛋白质、脂肪、碳水化合物、膳食纤维、糖类、钙、钾、钠、维生素A、维生素C、维生素D、胆固醇、饱和脂肪酸。
         
         营养成分列表：
-        ${mainNutrients.map(n => `${n.name}: ${n.amount} ${n.unit}`).join('\n')}
+        ${mainNutrients.map((n: Nutrient) => `${n.name}: ${n.amount} ${n.unit}`).join('\n')}
         
         请以JSON格式返回，格式如下：
         [
@@ -139,8 +153,8 @@ export async function POST(request: Request) {
           amount: n.amount,
           unit: unitTranslations[n.nutrient.unitName] || n.nutrient.unitName
         }))
-        .filter(n => nutrientTranslations[n.name]) // 只保留我们定义了翻译的营养成分
-        .sort((a, b) => {
+        .filter((n: Nutrient) => nutrientTranslations[n.name]) // 添加类型注解
+        .sort((a: Nutrient, b: Nutrient) => {
           const indexA = nutrientOrder.indexOf(a.name);
           const indexB = nutrientOrder.indexOf(b.name);
           return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
